@@ -3,6 +3,7 @@ set -e
 
 VENV_DIR=".venv"
 VENV_PY="$VENV_DIR/bin/python3"
+REQUIREMENTS_MARKER="$VENV_DIR/.requirements-installed"
 
 # 1) Create local venv if missing
 if [ ! -x "$VENV_PY" ]; then
@@ -10,14 +11,29 @@ if [ ! -x "$VENV_PY" ]; then
   python3 -m venv "$VENV_DIR"
 fi
 
-# 2) Ensure pip is present and up to date
+# 2) Ensure pip is present and up to date (silent)
 "$VENV_PY" -m ensurepip --upgrade >/dev/null 2>&1 || true
 "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
 
-# 3) Install/update dependencies from requirements.txt (best effort)
+# 3) Install/update dependencies from requirements.txt (only if needed)
 if [ -f requirements.txt ]; then
-  echo "[setup] Installing requirements…"
-  "$VENV_PY" -m pip install -r requirements.txt
+  # Check if we need to install/update requirements
+  NEEDS_INSTALL=0
+
+  # If marker doesn't exist, we need to install
+  if [ ! -f "$REQUIREMENTS_MARKER" ]; then
+    NEEDS_INSTALL=1
+  # If requirements.txt is newer than marker, we need to reinstall
+  elif [ requirements.txt -nt "$REQUIREMENTS_MARKER" ]; then
+    NEEDS_INSTALL=1
+  fi
+
+  if [ $NEEDS_INSTALL -eq 1 ]; then
+    echo "[setup] Installing requirements…"
+    "$VENV_PY" -m pip install -r requirements.txt
+    # Create/update marker file
+    touch "$REQUIREMENTS_MARKER"
+  fi
 fi
 
 # 4) Run the app as a module
