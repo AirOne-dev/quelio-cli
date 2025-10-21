@@ -8,6 +8,7 @@ Un petit outil en ligne de commande pour consulter vos badgeages de la semaine d
 <br /><br />
 
 Pré-requis
+- [AirOne-dev/quelio-api](https://github.com/AirOne-dev/quelio-api) configuré et installé sur un serveur web
 - Python 3
 
 Setup
