@@ -3,6 +3,10 @@ Quelio CLI
 
 Un petit outil en ligne de commande pour consulter vos badgeages de la semaine dans une interface TUI (terminal) et en mode texte.
 
+<br />
+<img width="405" height="727" alt="image" src="https://github.com/user-attachments/assets/fc6412ef-b448-4b59-a5e6-be62908edc16" />
+<br /><br />
+
 Pré-requis
 - Python 3
 
