@@ -23,6 +23,12 @@ class Config:
     api_url: str
     username: str
     weekly_hours: int = 38
+    work_days: list[int] = None  # 0=lundi, 1=mardi, ..., 6=dimanche
+
+    def __post_init__(self):
+        # Default work days: Monday to Friday (0-4)
+        if self.work_days is None:
+            self.work_days = [0, 1, 2, 3, 4]
 
     @staticmethod
     def load() -> Optional["Config"]:
@@ -36,6 +42,7 @@ class Config:
                 api_url=data.get("api_url", DEFAULT_API_URL),
                 username=data["username"],
                 weekly_hours=int(data.get("weekly_hours", 38)),
+                work_days=data.get("work_days", [0, 1, 2, 3, 4]),
             )
         except Exception:
             return None
@@ -49,6 +56,7 @@ class Config:
                     "api_url": self.api_url,
                     "username": self.username,
                     "weekly_hours": int(self.weekly_hours),
+                    "work_days": self.work_days if self.work_days else [0, 1, 2, 3, 4],
                 },
                 f,
                 indent=2,

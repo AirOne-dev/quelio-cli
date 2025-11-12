@@ -94,9 +94,11 @@ def run() -> None:
         total_effective = reactive("--:--")
         total_paid = reactive("--:--")
         weekly_minutes: int = 38 * 60
+        hours_data: Dict[str, List[str]] = {}
+        work_days: list[int] = [0, 1, 2, 3, 4]  # Default: Mon-Fri
 
         def render(self):
-            # Remaining time = weekly target - paid
+            # Remaining time = weekly target - paid - (missing work days * daily hours)
             def to_min(txt: str) -> int | None:
                 try:
                     h, m = txt.split(":")
@@ -107,7 +109,28 @@ def run() -> None:
             paid_m = to_min(self.total_paid)
             remaining = None
             if paid_m is not None:
-                remaining = int(self.weekly_minutes) - paid_m
+                # Count configured work days without time entries (only past/current days)
+                missing_work_days = 0
+                now = datetime.now()
+                for key, wd, dt in current_week_dates():
+                    # Only check configured work days
+                    weekday = dt.weekday()
+                    if weekday not in self.work_days:
+                        continue
+                    # Only check past and current days, not future
+                    if dt.date() > now.date():
+                        continue
+                    # Check if no time entries for this work day
+                    points = self.hours_data.get(key, [])
+                    if len(points) == 0:
+                        missing_work_days += 1
+
+                # Calculate minutes per work day (weekly_minutes / number of work days)
+                num_work_days = len(self.work_days) if self.work_days else 5
+                minutes_per_work_day = self.weekly_minutes / num_work_days
+                missing_minutes = int(missing_work_days * minutes_per_work_day)
+
+                remaining = int(self.weekly_minutes) - paid_m - missing_minutes
                 if remaining < 0:
                     remaining = 0
 
@@ -348,6 +371,11 @@ def run() -> None:
                 self.totals.weekly_minutes = int(getattr(conf, "weekly_hours", 38)) * 60
             except Exception:
                 self.totals.weekly_minutes = 38 * 60
+            # Configure work days from saved config
+            try:
+                self.totals.work_days = getattr(conf, "work_days", [0, 1, 2, 3, 4])
+            except Exception:
+                self.totals.work_days = [0, 1, 2, 3, 4]
             self.list = VerticalScroll(id="daylist")
 
         def compose(self) -> ComposeResult:
@@ -448,6 +476,8 @@ def run() -> None:
             eff_min, paid_min = self._week_minutes_pair()
             self.totals.total_effective = minutes_to_hhmm(eff_min)
             self.totals.total_paid = minutes_to_hhmm(paid_min)
+            # Update hours data for missing days calculation
+            self.totals.hours_data = State.hours
             # If anything is open or today progresses, refresh visuals
             try:
                 for child in list(self.list.children):
